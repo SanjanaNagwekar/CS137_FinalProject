@@ -25,8 +25,8 @@ def apply_canny(input_dir, output_dir, lower_threshold, upper_threshold):
             print(f"Processed and saved Canny filtered image: {output_path}")
 
 def main():
-    input_dir = "/Users/sanjananagwekar/Downloads/136CompVision/Final Project/1.Gaussian_Filter"
-    output_dir = "/Users/sanjananagwekar/Downloads/136CompVision/Final Project/3.Canny_Filter"
+    input_dir = "1.Gaussian_Filter/"
+    output_dir = "2.Canny_Filter/"
 
     # Set thresholds for Canny edge detection
     lower_threshold = 10

@@ -2,8 +2,8 @@ import cv2
 import os
 
 def main():
-    input_dir = "/Users/sanjananagwekar/Downloads/136CompVision/Final Project"
-    output_dir = "/Users/sanjananagwekar/Downloads/136CompVision/Final Project/1.Gaussian_Filter"
+    input_dir = "original_images/"
+    output_dir = "1.Gaussian_Filter/"
     os.makedirs(output_dir, exist_ok=True)
 
     for filename in os.listdir(input_dir):

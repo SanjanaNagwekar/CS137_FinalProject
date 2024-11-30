@@ -32,8 +32,8 @@ def apply_sobel(input_dir, output_dir):
             print(f"Processed and saved Sobel filtered image: {output_path}")
 
 def main():
-    input_dir = "/Users/sanjananagwekar/Downloads/136CompVision/Final Project/1.Gaussian_Filter"
-    output_dir = "/Users/sanjananagwekar/Downloads/136CompVision/Final Project/2.Sobel_Filter"
+    input_dir = "1.Gaussian_Filter/"
+    output_dir = "2.Sobel_Filter/"
     apply_sobel(input_dir, output_dir)
 
 if __name__ == "__main__":
