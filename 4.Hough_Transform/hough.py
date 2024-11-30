@@ -58,6 +58,7 @@ def main():
 if __name__ == "__main__":
     main()
 '''
+'''
 ###########################################################################################################################
 
 # METHOD 2
@@ -118,7 +119,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+'''
 ###########################################################################################################################
 '''
 # METHOD 3
@@ -155,8 +156,9 @@ cv2.imwrite('4.Hough_Transform/new1.jpg', image)
 print("The image with detected coral babies has been saved as 'coral_babies_detected.jpg'.")
 
 '''
-###########################################################################################################################
 '''
+###########################################################################################################################
+
 # METHOD 4
 
 import cv2
@@ -292,3 +294,85 @@ def main():
 if __name__ == "__main__":
     main()
 '''
+
+
+###########################################################################################################################
+
+# METHOD 5
+
+
+import cv2
+import numpy as np
+import os
+
+def detect_and_circle_white_spots(input_dir, output_dir):
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    for filename in os.listdir(input_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            input_image_path = os.path.join(input_dir, filename)
+            output_image_path = os.path.join(output_dir, filename)
+
+            # Load the image
+            img = cv2.imread(input_image_path)
+            if img is None:
+                print(f"Failed to load image: {filename}")
+                continue
+
+            # Convert to grayscale
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            # Preprocess: Apply GaussianBlur to reduce noise
+            gray_blurred = cv2.GaussianBlur(gray, (15, 15), 2)
+
+            # Adaptive thresholding with stricter parameters
+            thresholded = cv2.adaptiveThreshold(
+                gray_blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5
+            )
+
+            # Apply morphological operations to clean up small details
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6, 6))
+            thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
+
+            # Debug: Save the thresholded image
+            debug_threshold_path = os.path.join(output_dir, f"thresholded_{filename}")
+            cv2.imwrite(debug_threshold_path, thresholded)
+            print(f"Saved thresholded image: {debug_threshold_path}")
+
+            # Find contours in the cleaned thresholded image
+            contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            if len(contours) == 0:
+                print(f"No contours detected in {filename}.")
+                continue
+
+            # Debug: Draw contours on a copy of the original image
+            debug_contours_img = img.copy()
+            cv2.drawContours(debug_contours_img, contours, -1, (0, 0, 255), 1)
+            debug_contours_path = os.path.join(output_dir, f"contours_{filename}")
+            cv2.imwrite(debug_contours_path, debug_contours_img)
+            print(f"Saved contours image: {debug_contours_path}")
+
+            # Draw circles around each white spot
+            for contour in contours:
+                # Calculate the minimum enclosing circle
+                (x, y), radius = cv2.minEnclosingCircle(contour)
+                center = (int(x), int(y))
+                radius = int(radius)
+
+                # Draw the circle on the original image
+                if radius > 5:  # Filter out very small circles
+                    cv2.circle(img, center, radius, (0, 255, 0), 2)  # Green circle
+
+            # Save the output image with drawn circles
+            cv2.imwrite(output_image_path, img)
+            print(f"Output saved to: {output_image_path}")
+
+if __name__ == "__main__":
+    # Input and output directories
+    input_dir = "original_images/"  # Replace with the path to your input folder
+    output_dir = "4.White_Spots_Circled/"  # Replace with the path to your output folder
+
+    # Run the detection
+    detect_and_circle_white_spots(input_dir, output_dir)
