@@ -58,9 +58,8 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-'''
 ###########################################################################################################################
-
+'''
 # METHOD 2
 
 import cv2
@@ -156,150 +155,70 @@ cv2.imwrite('4.Hough_Transform/new1.jpg', image)
 print("The image with detected coral babies has been saved as 'coral_babies_detected.jpg'.")
 
 '''
-'''
 ###########################################################################################################################
-
+'''
 # METHOD 4
 
+from PIL import Image, ImageDraw
+import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 
-def detect_circular_blobs(image_path, debug=False):
-    """
-    Detect and count circular blobs in an image that resemble small floral clusters or bacteria.
-    
-    Parameters:
-    -----------
-    image_path : str
-        Path to the input image file
-    debug : bool, optional
-        If True, displays intermediate processing steps (default is False)
-    
-    Returns:
-    --------
-    tuple: (processed_image, blob_count, blob_details)
-        - processed_image: Image with detected blobs highlighted
-        - blob_count: Number of detected blobs
-        - blob_details: List of blob information (center, radius, etc.)
-    """
-    # Read the image
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Could not read image from {image_path}")
-    
-    # Create a copy for processing and drawing
-    processed = image.copy()
-    
-    # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    # Apply Gaussian blur to reduce noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    
-    # Adaptive thresholding to handle varying background
-    thresh = cv2.adaptiveThreshold(
-        blurred, 
-        255, 
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-        cv2.THRESH_BINARY_INV, 
-        11,  # block size
-        2    # constant subtracted from mean
-    )
-    
-    if debug:
-        cv2.imshow('Thresholded Image', thresh)
-        cv2.waitKey(0)
-    
-    # Find contours
-    contours, _ = cv2.findContours(
-        thresh, 
-        cv2.RETR_EXTERNAL, 
-        cv2.CHAIN_APPROX_SIMPLE
-    )
-    
-    # Blob detection parameters
-    blobs = []
-    for contour in contours:
-        # Calculate contour area and perimeter
-        area = cv2.contourArea(contour)
-        perimeter = cv2.arcLength(contour, True)
-        
-        # Skip very small or very large contours
-        if area < 10 or area > image.shape[0] * image.shape[1] * 0.1:
-            continue
-        
-        # Calculate circularity
-        if perimeter > 0:
-            circularity = 4 * np.pi * area / (perimeter ** 2)
-        else:
-            continue
-        
-        # Check if the blob is sufficiently circular
-        if circularity > 0.7:  # Adjust this threshold as needed
-            # Get the minimal enclosing circle
-            (x, y), radius = cv2.minEnclosingCircle(contour)
-            center = (int(x), int(y))
-            radius = int(radius)
-            
-            # Additional color consistency check
-            mask = np.zeros(gray.shape, dtype=np.uint8)
-            cv2.drawContours(mask, [contour], -1, 255, -1)
-            
-            # Calculate mean and standard deviation of pixel intensities inside and around the blob
-            mean_inside = cv2.mean(gray, mask=mask)[0]
-            mean_outside = cv2.mean(gray, mask=cv2.bitwise_not(mask))[0]
-            
-            # Check color variation
-            if abs(mean_inside - mean_outside) < 30:  # Adjust threshold as needed
-                blobs.append({
-                    'center': center,
-                    'radius': radius,
-                    'area': area,
-                    'circularity': circularity
-                })
-                
-                # Draw the detected blob
-                cv2.circle(processed, center, radius, (0, 255, 0), 2)
-                cv2.circle(processed, center, 3, (255, 0, 0), -1)
-    
-    if debug:
-        cv2.imshow('Detected Blobs', processed)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    
-    return processed, len(blobs), blobs
+# Load the image
+image_path = "original_images/32_T2_6_timepoint0.jpg"
+image = Image.open(image_path)
 
-# Example usage
-def main():
-    # Replace with your image path
-    image_path = 'original_images/32_T2_6_timepoint0.jpg'
-    
-    try:
-        # Detect blobs with debug mode on
-        result_image, blob_count, blob_details = detect_circular_blobs(image_path, debug=True)
-        
-        print(f"Number of blobs detected: {blob_count}")
-        
-        # Print details of each blob
-        for i, blob in enumerate(blob_details, 1):
-            print(f"Blob {i}:")
-            print(f"  Center: {blob['center']}")
-            print(f"  Radius: {blob['radius']}")
-            print(f"  Area: {blob['area']}")
-            print(f"  Circularity: {blob['circularity']:.2f}")
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
+# Convert image to grayscale for easier processing
+image_cv = cv2.imread(image_path)
+gray = cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY)
 
-if __name__ == "__main__":
-    main()
+# Use HoughCircles to detect circular shapes
+circles = cv2.HoughCircles(
+    gray,
+    cv2.HOUGH_GRADIENT,
+    dp=1.2,
+    minDist=15,
+    param1=50,
+    param2=30,
+    minRadius=5,
+    maxRadius=20
+)
+
+# Create a copy of the image to draw the detections
+output_image = image.copy()
+draw = ImageDraw.Draw(output_image)
+detected_count = 0
+
+# Draw detected circles on the image
+if circles is not None:
+    circles = np.uint16(np.around(circles))
+    detected_count = circles.shape[1]
+    for i in circles[0, :]:
+        draw.ellipse(
+            [
+                (i[0] - i[2], i[1] - i[2]),
+                (i[0] + i[2], i[1] + i[2])
+            ],
+            outline="red",
+            width=2
+        )
+
+# Save the output image as JPG
+output_image_path = '4.Hough_Transform/method4_1.jpg'
+output_image.convert("RGB").save(output_image_path, "JPEG")
+
+# Show the result and detected count
+plt.figure(figsize=(8, 8))
+plt.imshow(output_image)
+plt.axis("off")
+plt.title(f"Detected Coral Larvae: {detected_count}")
+plt.show()
+
+print(f"Detected coral larvae: {detected_count}")
 '''
-
-
 ###########################################################################################################################
 
 # METHOD 5
-
 
 import cv2
 import numpy as np
@@ -339,6 +258,135 @@ def detect_and_circle_white_spots(input_dir, output_dir):
             debug_threshold_path = os.path.join(output_dir, f"thresholded_{filename}")
             cv2.imwrite(debug_threshold_path, thresholded)
             print(f"Saved thresholded image: {debug_threshold_path}")
+            
+            # Dilate the image
+            dilation_kernel= np.ones((7,7),np.uint8)
+            debug_dilated_path = os.path.join(output_dir, f"dilated_{filename}")
+            dilated_image = cv2.dilate(thresholded, dilation_kernel, iterations=2)
+            cv2.imwrite(debug_dilated_path, dilated_image)
+
+            # Inverting image
+            debug_inverted_path = os.path.join(output_dir, f"inverted_{filename}")
+            inverted_image = cv2.bitwise_not(dilated_image)
+            cv2.imwrite(debug_inverted_path, inverted_image)
+
+            # More preprcessing- apply thresholding and morphological operations for enhancement, noise removal and better separation of white spots
+            # thresholded2 = cv2.adaptiveThreshold(inverted_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, -2)
+            # kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            # processed = cv2.morphologyEx(inverted_image, cv2.MORPH_OPEN, kernel2, iterations=2)
+            # debug_processed_path = os.path.join(output_dir, f"processed{filename}")
+            # cv2.imwrite(debug_processed_path, processed)
+            processed = cv2.GaussianBlur(inverted_image, (41, 41), 2)
+            debug_processed_path = os.path.join(output_dir, f"processed{filename}")
+            cv2.imwrite(debug_processed_path, processed)
+
+            # Find contours in the cleaned thresholded image
+            contours, _ = cv2.findContours(processed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            if len(contours) == 0:
+                print(f"No contours detected in {filename}.")
+                continue
+
+            # Debug: Draw contours on a copy of the original image
+            debug_contours_img = img.copy()
+            cv2.drawContours(debug_contours_img, contours, -1, (0, 0, 255), 1)
+            debug_contours_path = os.path.join(output_dir, f"contours_{filename}")
+            cv2.imwrite(debug_contours_path, debug_contours_img)
+            print(len(contours))
+
+            # Filter contours by area
+            filtered_contours = []
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if 100 <= area <= 500:
+                    filtered_contours.append(contour)
+
+            # Draw filtered contours on the original image
+            filtered_cont = img.copy()
+            cv2.drawContours(filtered_cont, filtered_contours, -1, (0, 255, 0), 2)
+
+            debug_filt_contours_path = os.path.join(output_dir, f"filt_contours_{filename}")
+            cv2.imwrite(debug_filt_contours_path, filtered_cont)
+            print(f"Saved filtered contours image: {debug_filt_contours_path}")
+
+            # Draw filtered contours on black background
+            # Create a blank black image of the same size as the input image
+            black_background = np.zeros_like(img)
+            # Draw the filtered contours on the black background
+            cv2.drawContours(black_background, filtered_contours, -1, (0, 255, 0), 2)
+            black_bg_path = os.path.join(output_dir, f"black_bg_{filename}")
+            cv2.imwrite(black_bg_path, black_background)
+            print(f"Saved filtered contours image: {black_bg_path}")
+
+
+
+            # Draw circles around each white spot
+            for filtered_contour in filtered_contours:
+                # Calculate the minimum enclosing circle
+                (x, y), radius = cv2.minEnclosingCircle(filtered_contour)
+                center = (int(x), int(y))
+                radius = int(radius)
+
+                # Draw the circle on the original image
+                if radius > 5:  # Filter out very small circles
+                    cv2.circle(img, center, radius, (0, 255, 0), 2)  # Green circle
+
+            # Save the output image with drawn circles
+            cv2.imwrite(output_image_path, img)
+            print(f"Output saved to: {output_image_path}")
+
+if __name__ == "__main__":
+    # Input and output directories
+    input_dir = "original_images/"  # Replace with the path to your input folder
+    output_dir = "trial/"  # Replace with the path to your output folder
+
+    # Run the detection
+    trial_img=cv2.imread('original_images/32_T2_6_timepoint1.JPG')
+    print(trial_img.shape)
+    detect_and_circle_white_spots(input_dir, output_dir)
+
+##############################################################################################
+'''
+# METHOD 6
+
+import cv2
+import numpy as np
+import os
+
+def detect_and_circle_dark_spots(input_dir, output_dir):
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    for filename in os.listdir(input_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            input_image_path = os.path.join(input_dir, filename)
+            output_image_path = os.path.join(output_dir, filename)
+
+            # Load the image
+            img = cv2.imread(input_image_path)
+            if img is None:
+                print(f"Failed to load image: {filename}")
+                continue
+
+            # Convert to grayscale
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            # Preprocess: Apply GaussianBlur to reduce noise
+            gray_blurred = cv2.GaussianBlur(gray, (15, 15), 2)
+
+            # Adaptive thresholding to detect dark spots
+            thresholded = cv2.adaptiveThreshold(
+                gray_blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 5
+            )
+
+            # Apply morphological operations to clean up small details
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6, 6))
+            thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
+
+            # Debug: Save the thresholded image
+            debug_threshold_path = os.path.join(output_dir, f"thresholded_{filename}")
+            cv2.imwrite(debug_threshold_path, thresholded)
+            print(f"Saved thresholded image: {debug_threshold_path}")
 
             # Find contours in the cleaned thresholded image
             contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -354,7 +402,7 @@ def detect_and_circle_white_spots(input_dir, output_dir):
             cv2.imwrite(debug_contours_path, debug_contours_img)
             print(f"Saved contours image: {debug_contours_path}")
 
-            # Draw circles around each white spot
+            # Draw circles around each dark spot
             for contour in contours:
                 # Calculate the minimum enclosing circle
                 (x, y), radius = cv2.minEnclosingCircle(contour)
@@ -372,7 +420,8 @@ def detect_and_circle_white_spots(input_dir, output_dir):
 if __name__ == "__main__":
     # Input and output directories
     input_dir = "original_images/"  # Replace with the path to your input folder
-    output_dir = "4.White_Spots_Circled/"  # Replace with the path to your output folder
+    output_dir = "4.Dark_Spots_Circled/"  # Replace with the path to your output folder
 
     # Run the detection
-    detect_and_circle_white_spots(input_dir, output_dir)
+    detect_and_circle_dark_spots(input_dir, output_dir)
+'''
