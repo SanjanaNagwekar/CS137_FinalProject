@@ -156,7 +156,7 @@ print("The image with detected coral babies has been saved as 'coral_babies_dete
 
 '''
 ###########################################################################################################################
-'''
+
 # METHOD 4
 
 from PIL import Image, ImageDraw
@@ -165,7 +165,7 @@ import cv2
 import numpy as np
 
 # Load the image
-image_path = "original_images/32_T2_6_timepoint0.jpg"
+image_path = "original_images/tahoe.JPG"
 image = Image.open(image_path)
 
 # Convert image to grayscale for easier processing
@@ -177,11 +177,11 @@ circles = cv2.HoughCircles(
     gray,
     cv2.HOUGH_GRADIENT,
     dp=1.2,
-    minDist=15,
+    minDist=55,
     param1=50,
-    param2=30,
-    minRadius=5,
-    maxRadius=20
+    param2=35,
+    minRadius=60,
+    maxRadius=80
 )
 
 # Create a copy of the image to draw the detections
@@ -194,18 +194,21 @@ if circles is not None:
     circles = np.uint16(np.around(circles))
     detected_count = circles.shape[1]
     for i in circles[0, :]:
-        draw.ellipse(
-            [
-                (i[0] - i[2], i[1] - i[2]),
-                (i[0] + i[2], i[1] + i[2])
-            ],
-            outline="red",
-            width=2
-        )
+        # Validate coordinates to avoid overflow
+        x0, y0 = max(i[0] - i[2], 0), max(i[1] - i[2], 0)  # Top-left corner
+        x1, y1 = min(i[0] + i[2], image.width), min(i[1] + i[2], image.height)  # Bottom-right corner
+
+        # Only draw if the coordinates are valid
+        if x1 > x0 and y1 > y0:
+            draw.ellipse(
+                [(x0, y0), (x1, y1)],
+                outline="red",
+                width=5
+            )
 
 # Save the output image as JPG
-output_image_path = '4.Hough_Transform/method4_1.jpg'
-output_image.convert("RGB").save(output_image_path, "JPEG")
+output_image.convert("RGB").save('4.Hough_Transform/tahoe.JPG', "JPEG")
+print(f"Circles detected: {detected_count}")
 
 # Show the result and detected count
 plt.figure(figsize=(8, 8))
@@ -214,10 +217,8 @@ plt.axis("off")
 plt.title(f"Detected Coral Larvae: {detected_count}")
 plt.show()
 
-print(f"Detected coral larvae: {detected_count}")
-'''
 ###########################################################################################################################
-
+'''
 # METHOD 5
 
 import cv2
@@ -344,7 +345,7 @@ if __name__ == "__main__":
     trial_img=cv2.imread('original_images/32_T2_6_timepoint1.JPG')
     print(trial_img.shape)
     detect_and_circle_white_spots(input_dir, output_dir)
-
+'''
 ##############################################################################################
 '''
 # METHOD 6
